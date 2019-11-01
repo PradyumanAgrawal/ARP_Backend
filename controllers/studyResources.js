@@ -7,31 +7,7 @@ const admin = require('../utils/config.js').admin;
 const storage = require('../models/firebasedb.js').storage;
 const firebase  = require('firebase/app');
 
-//all flagged
-studyResRouter.get('/', async (req,res,next)=>{
-    try{
-        let globalList = [];
-        let branches = await studyResources.get();
-        for (const branch of branches.docs) {
-            let subjects = await studyResources.doc(branch.id).listCollections();
-            for (const subject of subjects) {
-                let resources = await subject.get();
-                for (const resource of resources.docs) {
-                    if (resource.data().flags > 0)
-                        globalList.push(resource.data());
-                    //console.log(globalList);
-                }
-            }
-        }
-        console.log(globalList);
-        //return globalList;
-        res.status(200).send(globalList);
-    }catch(err){
-        next(err);
-    }
-});
-
-//delete resource by unique id () (complete)
+//delete resource by unique id
 studyResRouter.delete('/:branch/subjects/:subjectCode/resources/:uniqueId',async (req,res,next)=>{
     try{
         let resource = await studyResources
@@ -39,24 +15,20 @@ studyResRouter.delete('/:branch/subjects/:subjectCode/resources/:uniqueId',async
             .collection(req.params.subjectCode)
             .doc(req.params.uniqueId).get();
 
-
-        let downloadLink = resource.data().downloadLink;
         let storageReference=resource.data().storageReference;
         let resourceRef = await storage.bucket(process.env.storageBucket);
-        //const [files] = await storage.bucket(process.env.storageBucket).getFiles();
-
-      var str = resource.data.resourceRef;
-      var pos = str.lastIndexOf("/");
-      var name = str.substring(pos+1);
-      let file=resourceRef.file('name');
+        let str = storageReference;
+        let pos = str.lastIndexOf("/");
+        let name = str.substring(pos+1);
+        let file=resourceRef.file(name);
 
         file.delete().then(()=>{
             studyResources
             .doc(req.params.branch)
             .collection(req.params.subjectCode)
             .doc(req.params.uniqueId).delete().then(()=>{
-             console.log("successfully deleted file")
-              res.sendStatus(204).end();
+             console.log("successfully deleted file");
+             res.sendStatus(204).end();
         }).catch((err)=>{
               next(err)})
         }).catch((err)=>{
@@ -67,33 +39,7 @@ studyResRouter.delete('/:branch/subjects/:subjectCode/resources/:uniqueId',async
     }
 });
 
-//get all resources
-studyResRouter.get('/search', async (req,res,next)=>{
-    let list = [];
-    try{
-        let branches = await studyResources.get();
-        for (const branch of branches.docs) {
-            let subjects = await studyResources.doc(branch.id).listCollections();
-            for(const subject of subjects){
-                let resources = await subject.get();
-                for(const resource of resources.docs) {
-                    if (resource.data().review) {
-                        let subName = resource.data().subjectName;
-                        let subCode = resource.data().subjectCode;
-                        list.push({subjectName: subName, subjectCode: subCode});
-                        break;
-                    }
-                }
-            }
-        }
-        res.status(200).send(list);
-    }catch(error){
-        next(error)
-    }
-});
-
-
-//upload resources of a subject code (Complete)
+//upload a resource of a subject code
 studyResRouter.post('/:branch/subjects/:subjectCode', async (req,res,next)=>{
    try {
        let resourceObj = {
@@ -108,19 +54,24 @@ studyResRouter.post('/:branch/subjects/:subjectCode', async (req,res,next)=>{
            downloadLink: req.body.downloadLink,
            flagReason: []
        };
+
        let resource = await studyResources
            .doc(req.params.branch)
            .collection(req.params.subjectCode)
            .doc();
        resourceObj.resourceId = resource.id;
        resource.set(resourceObj)
+           .then(()=>{
+               studyResources
+                   .doc(req.params.branch).set({lastUpdated : Date.now()});
+           })
            .then(() => res.status(201).end());
    }catch(err){
        next(err);
    }
 });
 
-//get resources by subjectcode (Complete)
+//get resources by subjectcode
 studyResRouter.get('/:branch/subjects/:subjectCode',async (req,res,next)=>{
     try{
         let resources = await studyResources
@@ -138,7 +89,7 @@ studyResRouter.get('/:branch/subjects/:subjectCode',async (req,res,next)=>{
     }
 });
 
-//update flag (Complete)
+//update flag
 studyResRouter.put('/:branch/subjects/:subjectCode/resources/:uniqueId',async (req,res,next)=>{
     try{
         let resource;
@@ -166,33 +117,8 @@ studyResRouter.put('/:branch/subjects/:subjectCode/resources/:uniqueId',async (r
     }
 });
 
-//get all subjects of a branch (complete)
+//get all subjects of a branch
 studyResRouter.get('/:branch', async (req,res,next)=>{
-/*    try {
-        let globalList = [];
-        studyResources
-            .doc(req.params.branch)
-            .listCollections()
-            .then(async (subjects) => {
-                //console.log(subjects);
-                for(const subject of subjects){
-                    let resources = await subject.get();
-                    for(const resource of resources.docs){
-                        if(resource.data().review){
-                            let subName = resource.data().subjectName;
-                            let subCode = resource.data().subjectCode;
-                            globalList.push({subjectName: subName, subjectCode: subCode});
-                            break;
-                        }
-                    }
-                }
-                return globalList;
-            }).then((globalList)=>{res.status(200).send(globalList)}).catch(err => {next(err)});
-
-    }catch(error)
-    {
-        next(error);
-    }*/
     try {
         let globalList = [];
         let subjects = await studyResources.doc(req.params.branch).listCollections();
@@ -210,30 +136,6 @@ studyResRouter.get('/:branch', async (req,res,next)=>{
      res.status(200).send(globalList);
     }catch(error)
     {
-        next(error);
-    }
-});
-
-//admin review implementation (complete)
-studyResRouter.put('/admin/:branch/subjects/:subjectCode/resources/:uniqueId',async (req,res,next)=>{
-    try{
-        let updateObj = {
-            subjectName : req.body.subjectName,
-            subjectCode : req.body.subjectCode,
-            semester : req.body.semester,
-            type : req.body.type,
-            year : req.body.year,
-            flags : 0,
-            flagReason : [],
-            review : true
-        };
-        await studyResources
-            .doc(req.params.branch)
-            .collection(req.params.subjectCode)
-            .doc(req.params.uniqueId)
-            .update(updateObj)
-            .then(()=>res.sendStatus(204).end());
-    }catch(error){
         next(error);
     }
 });
