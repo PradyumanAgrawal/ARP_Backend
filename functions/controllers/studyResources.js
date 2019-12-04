@@ -8,40 +8,12 @@ const storage = require('../models/firebasedb.js').storage;
 const firebase  = require('firebase/app');
 
 //delete resource by unique id
-studyResRouter.delete('/:branch/subjects/:subjectCode/resources/:uniqueId',async (req,res,next)=>{
-    try{
-        let resource = await studyResources
-            .doc(req.params.branch)
-            .collection(req.params.subjectCode)
-            .doc(req.params.uniqueId).get();
 
-        let storageReference=resource.data().storageReference;
-        let resourceRef = await storage.bucket(process.env.storageBucket);
-        let str = storageReference;
-        let pos = str.lastIndexOf("/");
-        let name = str.substring(pos+1);
-        let file=resourceRef.file(name);
-
-        file.delete().then(()=>{
-            studyResources
-            .doc(req.params.branch)
-            .collection(req.params.subjectCode)
-            .doc(req.params.uniqueId).delete().then(()=>{
-             console.log("successfully deleted file");
-             res.sendStatus(204).end();
-        }).catch((err)=>{
-              next(err)})
-        }).catch((err)=>{
-              next(err)
-        });
-    }catch(error){
-        next(error);
-    }
-});
 
 //upload a resource of a subject code
 studyResRouter.post('/:branch/subjects/:subjectCode', async (req,res,next)=>{
    try {
+
        let resourceObj = {
            emailId: req.body.emailId,
            subjectName: req.body.subjectName,
@@ -52,9 +24,12 @@ studyResRouter.post('/:branch/subjects/:subjectCode', async (req,res,next)=>{
            year: req.body.year,
            review: false,
            downloadLink: req.body.downloadLink,
+           storageReference : req.body.storageReference,
+           description : req.body.description,
            flagReason: []
        };
-
+        console.log(resourceObj);
+        console.log(req.body.description);
        let resource = await studyResources
            .doc(req.params.branch)
            .collection(req.params.subjectCode)
@@ -104,7 +79,7 @@ studyResRouter.put('/:branch/subjects/:subjectCode/resources/:uniqueId',async (r
         let flagArray = resource.flagReason;
         flagArray.push(req.body.flagReason);
         let reviewVar = resource.review;
-        if(newFlags >= 30)
+        if(newFlags >= NUMBER)
             reviewVar = false;
         await studyResources
             .doc(req.params.branch)

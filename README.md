@@ -4,7 +4,7 @@
 
 
 ## Schema
-All API access is over `HTTPS`, and accessed from the `<https://arpbackend.firebaseapp.com>`. All data is sent as JSON.
+All API access is over `HTTPS`, and accessed from the `<https://arpbackend-df561.firebaseapp.com>`. All data is sent as JSON.
 
 ```bash
 
@@ -19,7 +19,7 @@ All API access is over `HTTPS`, and accessed from the `<https://arpbackend.fireb
 
 ## Endpoints
 
-### `GET: /flagged`
+### `GET: /admin/flagged`
 Result:
 Returns json data of all flagged files.
 ```json
@@ -60,7 +60,7 @@ Returns json data of all flagged files.
     }
 ]
 ```
-### `GET: /unreviewed`
+### `GET: /admin/unreviewed`
 Result:
 Returns json data of all unreviewed files.
 ```json
@@ -86,10 +86,6 @@ Returns json data of all unreviewed files.
     }
 ]
 ```
-
-### `DELETE: /studyResources/branches/{branch}/subjects/{subjectCode}/resources/{uniqueId}`
-Result:
-Delete the resource of uniqueId.
 
 ### `GET: /search`
 Result:
@@ -160,10 +156,6 @@ Result for subjectCode : CS2L003 :
 
 ```
 
-### `PUT: /studyResources/branches/{branch}/subjects/{subjectCode}/resources/{uniqueId}`
-Result:
-Updates flag.
-
 ### `GET: /studyResources/branches/{branch}`
 Result:
 Returns json data containing subjectName and subjectCode of all reviewed files for a specific branch.
@@ -185,12 +177,8 @@ Returns json data containing subjectName and subjectCode of all reviewed files f
 ]
 ```
 
-### `PUT: /admin/studyResources/branches/{branch}/subjects/{subjectCode}/resources/{uniqueId}`
-Result :
-Admin review the file and update the review value.
-
 ## Deployment
- Currently deployed on firebase `<https://arpbackend.firebaseapp.com>`.
+ Currently deployed on firebase `<https://arpbackend-df561.firebaseapp.com>`.
 
 
 ## Built With
